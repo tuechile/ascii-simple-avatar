@@ -1,0 +1,7 @@
+.venv
+.git
+.claude
+tests
+__pycache__
+.pytest_cache
+CLAUDE.md
