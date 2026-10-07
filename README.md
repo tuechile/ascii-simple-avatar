@@ -1,6 +1,6 @@
 # ascii-simple-avatar
 
-**Try it: https://tuechile.github.io/ascii-simple-avatar/**
+**Try it: http://pirenily.com/ascii-simple-avatar/**
 
 A cute little fashion app that dresses you up as a tiny ASCII avatar.
 
