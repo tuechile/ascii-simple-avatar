@@ -91,7 +91,7 @@ def test_motions_endpoint():
     assert "blink" in client.get("/motions").json()["eyes"]
 
 
-def portrait(hair_down, stripes):
+def portrait(hair_down, stripes, hair_end=None):
     import cv2
     import numpy as np
 
@@ -100,7 +100,9 @@ def portrait(hair_down, stripes):
     if stripes:
         for row in range(330, 520, 16):
             cv2.rectangle(img, (40, row), (360, row + 7), (250, 250, 250), -1)
-    cv2.rectangle(img, (110, 40), (290, 140 if not hair_down else 400), (30, 30, 40), -1)
+    cv2.rectangle(img, (95, 40), (305, hair_end or (400 if hair_down else 140)), (30, 30, 40), -1)
+    if hair_end:
+        cv2.rectangle(img, (95, 160), (125, hair_end), (60, 60, 75), -1)
     cv2.ellipse(img, (200, 190), (75, 100), 0, 0, 360, (140, 170, 215), -1)
     cv2.rectangle(img, (175, 280), (225, 330), (140, 170, 215), -1)
     return img, (125, 90, 150, 200)
@@ -121,6 +123,13 @@ def test_photo_reads_short_hair_and_plain_top():
     img, box = portrait(hair_down=False, stripes=False)
     traits = analyze(img, box)
     assert traits["hair"] != "long" and traits["pattern"] == "solid"
+
+
+def test_photo_hair_lengths():
+    from app.photo import analyze
+
+    lengths = {end: analyze(*portrait(False, False, hair_end=end))["hair"] for end in (140, 260, 300, 430)}
+    assert lengths == {140: "pixie", 260: "bob", 300: "bob", 430: "long"}
 
 
 def test_photo_without_face_is_422():

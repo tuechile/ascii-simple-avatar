@@ -110,8 +110,56 @@ let feature = "eyes";
 let play = {};
 let timer = null;
 
-const query = (extra = {}) => "?" + new URLSearchParams({ seed: state.seed, ...state.parts, ...extra });
-const get = async url => (await fetch(url)).json();
+const PYODIDE = "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/";
+const CODE = ["__init__.py", "avatar.py", "motion.py", "service.py", "photo.py"];
+const CASCADES = ["frontalface_default", "eye", "smile"].map(name => `cascades/haarcascade_${name}.xml`);
+const params = (extra = {}) => ({ seed: String(state.seed), ...state.parts, ...extra });
+const ROUTES = {
+  motions: () => "motions",
+  avatar: p => "avatar?" + new URLSearchParams(p),
+  options: (slot, p) => `options/${slot}?` + new URLSearchParams(p),
+  animate: p => "animate?" + new URLSearchParams(p),
+};
+const server = fetch("health").then(res => res.ok).catch(() => false);
+let python = null;
+let vision = null;
+
+const script = src => new Promise((resolve, reject) => document.head.append(make("script", { src, onload: resolve, onerror: reject })));
+
+const copy = (py, files) => Promise.all(files.map(async file =>
+  py.FS.writeFile(`/home/pyodide/app/${file}`, new Uint8Array(await (await fetch(`app/${file}`)).arrayBuffer()))));
+
+const boot = () => python ??= (async () => {
+  $("status").textContent = "warming up python...";
+  await script(PYODIDE + "pyodide.js");
+  const py = await loadPyodide({ indexURL: PYODIDE });
+  py.FS.mkdirTree("/home/pyodide/app/cascades");
+  await copy(py, CODE);
+  py.runPython("import sys; sys.path.insert(0, '/home/pyodide')");
+  $("status").textContent = "";
+  return { py, service: py.pyimport("app.service") };
+})();
+
+const local = async (name, args) => {
+  const { py, service } = await boot();
+  if (name === "photo") await (vision ??= Promise.all([py.loadPackage(["numpy", "opencv-python"]), copy(py, CASCADES)]));
+  try {
+    const out = service[name](...args.map(arg => typeof arg === "object" ? py.toPy(arg) : arg));
+    return out.toJs({ dict_converter: Object.fromEntries });
+  } catch (error) {
+    throw new Error(error.message.trim().split("\n").pop().split(": ").slice(1).join(": "));
+  }
+};
+
+const api = async (name, ...args) => {
+  if (!await server) return local(name, args);
+  const res = name === "photo"
+    ? await fetch("photo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: args[0] }) })
+    : await fetch(ROUTES[name](...args));
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.detail);
+  return body;
+};
 
 const draw = (el, art) => {
   el.replaceChildren(...[...art.replace(/\n/g, "")].map(ch => make("span", { textContent: ch })));
@@ -121,7 +169,7 @@ const draw = (el, art) => {
 const chip = (text, active, onclick, extra = "") => make("button", { textContent: text, className: (active ? "active " : "") + extra, onclick });
 
 const tiles = async () => {
-  const options = await get(`/options/${slot}` + query());
+  const options = await api("options", slot, params());
   $("grid").replaceChildren(...options.map(({ name, art }) => {
     const tile = make("button", { className: "tile" + (state.parts[slot] === name ? " active" : "") });
     tile.append(draw(make("div", { className: "art" }), art), make("span", { className: "name", textContent: name }));
@@ -155,7 +203,7 @@ const animate = async () => {
   clearInterval(timer);
   const entries = Object.entries(play);
   if (!entries.length) return draw($("art"), state.art);
-  const { fps, frames } = await get("/animate" + query({ play: entries.map(e => e.join(":")).join(",") }));
+  const { fps, frames } = await api("animate", params({ play: entries.map(e => e.join(":")).join(",") }));
   let i = 0;
   const tick = () => draw($("art"), frames[i++ % frames.length]);
   tick();
@@ -170,7 +218,7 @@ const apply = body => {
   animate();
 };
 
-const show = async (fresh = false) => apply(await get("/avatar" + (fresh ? "" : query())));
+const show = async (fresh = false) => apply(await api("avatar", fresh ? {} : params()));
 
 const flash = (button, text) => {
   const old = button.textContent;
@@ -196,10 +244,7 @@ $("file").onchange = async () => {
   if (!file) return;
   $("status").textContent = "reading your face...";
   try {
-    const res = await fetch("/photo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: await shrink(file) }) });
-    const body = await res.json();
-    if (!res.ok) throw new Error(body.detail);
-    apply(body);
+    apply(await api("photo", await shrink(file)));
     $("status").textContent = "";
   } catch (error) {
     $("status").textContent = error.message || "could not read that photo";
@@ -219,7 +264,7 @@ $("save").onclick = () => {
   const link = make("a", { href: URL.createObjectURL(new Blob([state.art], { type: "text/plain" })), download: `avatar-${state.seed}.txt` });
   link.click();
 };
-get("/motions").then(body => { motions = body; show(true); });
+api("motions").then(body => { motions = body; show(true); });
 </script>
 </body>
 </html>

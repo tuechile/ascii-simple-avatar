@@ -1,5 +1,7 @@
 # ascii-simple-avatar
 
+**Try it: https://tuechile.github.io/ascii-simple-avatar/**
+
 A cute little fashion app that dresses you up as a tiny ASCII avatar.
 
 ```
@@ -29,7 +31,7 @@ A cute little fashion app that dresses you up as a tiny ASCII avatar.
 - **Line styles**: classic, soft, dotted, sketch, bold, none.
 - **Shuffle** for a random avatar. The same seed always gives the same avatar, textures included. **Copy** or **save .txt**.
 - **Animate**: pick a feature (body, eyes, mouth, nose, hair, glasses, cheeks, ears, top, outfit), then an action (blink, look, wink, talk, whistle, bob, sway, shimmer, glow...). Mix as many as you like.
-- **From a photo**: take or upload a picture; local computer vision (OpenCV) finds your face and picks the closest part for each slot: hair length and texture, glasses, smile, blush, neckline and shirt pattern. You get a *simple* avatar built from the same parts, not a detailed pixel-to-character render. No API keys, nothing leaves your server, nothing is stored.
+- **From a photo**: take or upload a picture; local computer vision (OpenCV) finds your face and picks the closest part for each slot: hair length and texture, glasses, smile, blush, neckline and shirt pattern. You get a *simple* avatar built from the same parts, not a detailed pixel-to-character render. No API keys, nothing is stored. On GitHub Pages it runs entirely in your browser.
 
 ## Run
 
@@ -48,7 +50,9 @@ Open http://localhost:8000.
 
 ## Deploy
 
-Stateless, no database, no secrets. Any host that runs a Docker image or a Python web process works (Fly.io, Render, Railway, Cloud Run...).
+**GitHub Pages (live):** every push to `main` runs the tests and publishes the site via `.github/workflows/pages.yml`. Pages can't run a Python server, so the page loads [Pyodide](https://pyodide.org) and runs the same `app/` Python (including OpenCV for photos) right in your browser. Photos never leave your device there. First load downloads Python (~10 MB); the first photo downloads OpenCV.
+
+**Any server:** the same page talks to FastAPI when one is running. Stateless, no database, no secrets.
 
 ```bash
 docker build -t ascii-avatar .
@@ -58,7 +62,7 @@ docker build -t ascii-avatar .
 docker run -p 8000:8000 ascii-avatar
 ```
 
-The container listens on `$PORT` (default 8000). Without Docker, the start command is `uvicorn app.main:app --host 0.0.0.0 --port $PORT` with `requirements.txt` installed.
+The container listens on `$PORT` (default 8000).
 
 ## API
 
@@ -79,6 +83,8 @@ The container listens on `$PORT` (default 8000). Without Docker, the start comma
 app/avatar.py   part library and renderer
 app/motion.py   animation actions
 app/photo.py    photo to parts with OpenCV
+app/service.py  logic shared by the server and the in-browser build
+app/cascades/   OpenCV face, eye and smile detectors
 app/main.py     FastAPI routes
 static/         single-page frontend
 tests/          pytest suite

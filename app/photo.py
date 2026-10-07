@@ -1,7 +1,10 @@
+from pathlib import Path
+
 import cv2
 import numpy as np
 
-CASCADES = {name: cv2.CascadeClassifier(f"{cv2.data.haarcascades}haarcascade_{name}.xml") for name in ("frontalface_default", "eye", "smile")}
+HERE = Path(__file__).parent / "cascades"
+CASCADES = {name: cv2.CascadeClassifier(str(HERE / f"haarcascade_{name}.xml")) for name in ("frontalface_default", "eye", "smile")}
 MAX_SIDE = 640
 
 
@@ -48,7 +51,7 @@ def analyze(img, box):
     background = near(np.median(border, axis=0), 18)
     other = ~skin & ~background
     crown = other[area(-0.3, 0.05, 0.1, 0.9)]
-    hair = near(np.median(lab[area(-0.3, 0.05, 0.1, 0.9)][crown], axis=0), 25) & other if crown.sum() > 50 else other
+    hair = tone(lab, np.median(lab[area(-0.3, 0.05, 0.1, 0.9)][crown], axis=0)) & other if crown.sum() > 50 else other
     edges = cv2.Canny(gray, 60, 140) > 0
 
     return {
@@ -64,6 +67,11 @@ def analyze(img, box):
         "top": "none",
         **outfit(gray, skin, edges, area, share),
     }
+
+
+def tone(lab, color):
+    diff = lab - color
+    return np.sqrt((diff[..., 0] * 0.4) ** 2 + diff[..., 1] ** 2 + diff[..., 2] ** 2) < 22
 
 
 def face_shape(skin, area):
@@ -83,19 +91,28 @@ def hair_style(hair, area, share):
     top = share(hair, area(-0.3, 0.05, 0.1, 0.9))
     crown = share(hair, area(-0.3, -0.12, 0.1, 0.9))
     wide = (share(hair, area(-0.2, 0.5, -0.6, -0.3)) + share(hair, area(-0.2, 0.5, 1.3, 1.6))) / 2
-    sides = (share(hair, area(0.5, 1.0, -0.15, 0.05)) + share(hair, area(0.5, 1.0, 0.95, 1.15))) / 2
-    below = (share(hair, area(1.0, 1.5, -0.15, 0.1)) + share(hair, area(1.0, 1.5, 0.9, 1.15))) / 2
     if top < 0.25:
         return "bald"
     if wide > 0.5 and crown > 0.6:
         return "afro"
-    if below > 0.45:
+    length = hair_length(hair, area, share)
+    if length > 1.3:
         return "long"
-    if sides > 0.45:
+    if length > 0.6:
         return "bob"
-    if crown < 0.3:
-        return "buzz"
-    return "pixie"
+    return "buzz" if crown < 0.3 else "pixie"
+
+
+def hair_length(hair, area, share):
+    end, gap = 0.0, 0
+    for step in range(40):
+        row = step * 0.05
+        side = max(share(hair, area(row, row + 0.05, -0.3, 0.02)), share(hair, area(row, row + 0.05, 0.98, 1.3)))
+        if side > 0.25:
+            end, gap = row + 0.05, 0
+        elif (gap := gap + 1) > 3:
+            break
+    return end
 
 
 def hair_texture(gray, hair, area):
