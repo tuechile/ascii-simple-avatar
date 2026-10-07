@@ -1,8 +1,9 @@
+import base64
+import binascii
 import random
 import re
 from pathlib import Path
 
-import anthropic
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -13,7 +14,7 @@ from app.motion import FPS, MOTION, frames
 
 app = FastAPI()
 INDEX = Path(__file__).parent.parent / "static" / "index.html"
-DATA_URL = re.compile(r"data:(image/(?:jpeg|png|webp|gif));base64,([A-Za-z0-9+/=]+)")
+DATA_URL = re.compile(r"data:(image/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)")
 
 
 class Photo(BaseModel):
@@ -81,14 +82,10 @@ def animate(request: Request, seed: int = 0, play: str = ""):
 def from_photo(body: Photo):
     match = DATA_URL.fullmatch(body.image)
     if not match or len(body.image) > 7_000_000:
-        raise HTTPException(400, "send a jpeg, png, webp or gif data url under 5mb")
+        raise HTTPException(400, "send a jpeg, png or webp data url under 5mb")
     try:
-        selected = photo.traits(*match.groups())
-    except photo.Refused:
-        raise HTTPException(422, "could not read a face from that photo")
-    except (photo.Unconfigured, anthropic.AuthenticationError, anthropic.PermissionDeniedError):
-        raise HTTPException(503, "photo feature needs ANTHROPIC_API_KEY on the server")
-    except anthropic.APIError:
-        raise HTTPException(502, "photo service is unavailable, try again")
+        selected = photo.traits(base64.b64decode(match.group(2)))
+    except (photo.NoFace, binascii.Error):
+        raise HTTPException(422, "no face found, try a front-facing photo with good light")
     seed = random.randrange(10**9)
     return {"seed": seed, "parts": selected, "art": render(selected, seed)}

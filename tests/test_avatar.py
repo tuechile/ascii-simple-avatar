@@ -91,20 +91,57 @@ def test_motions_endpoint():
     assert "blink" in client.get("/motions").json()["eyes"]
 
 
+def portrait(hair_down, stripes):
+    import cv2
+    import numpy as np
+
+    img = np.full((520, 400, 3), 235, np.uint8)
+    cv2.rectangle(img, (40, 330), (360, 520), (180, 90, 60), -1)
+    if stripes:
+        for row in range(330, 520, 16):
+            cv2.rectangle(img, (40, row), (360, row + 7), (250, 250, 250), -1)
+    cv2.rectangle(img, (110, 40), (290, 140 if not hair_down else 400), (30, 30, 40), -1)
+    cv2.ellipse(img, (200, 190), (75, 100), 0, 0, 360, (140, 170, 215), -1)
+    cv2.rectangle(img, (175, 280), (225, 330), (140, 170, 215), -1)
+    return img, (125, 90, 150, 200)
+
+
+def test_photo_reads_long_hair_and_stripes():
+    from app.photo import analyze
+
+    img, box = portrait(hair_down=True, stripes=True)
+    traits = analyze(img, box)
+    assert traits["hair"] == "long" and traits["pattern"] == "stripe" and traits["glasses"] == "none"
+    assert set(traits) == set(PARTS) and all(traits[slot] in PARTS[slot] for slot in PARTS)
+
+
+def test_photo_reads_short_hair_and_plain_top():
+    from app.photo import analyze
+
+    img, box = portrait(hair_down=False, stripes=False)
+    traits = analyze(img, box)
+    assert traits["hair"] != "long" and traits["pattern"] == "solid"
+
+
+def test_photo_without_face_is_422():
+    import base64
+
+    import cv2
+    import numpy as np
+
+    blank = cv2.imencode(".png", np.full((200, 200, 3), 200, np.uint8))[1].tobytes()
+    image = "data:image/png;base64," + base64.b64encode(blank).decode()
+    assert client.post("/photo", json={"image": image}).status_code == 422
+
+
 def test_photo_maps_traits(monkeypatch):
     from app import photo
 
     chosen = pick(5, hair="afro", glasses="round")
-    monkeypatch.setattr(photo, "traits", lambda media_type, data: chosen)
+    monkeypatch.setattr(photo, "traits", lambda data: chosen)
     body = client.post("/photo", json={"image": "data:image/png;base64,iVBORw0KGgo="}).json()
     assert body["parts"] == chosen and "(" in body["art"]
 
 
 def test_photo_rejects_non_image():
     assert client.post("/photo", json={"image": "hello"}).status_code == 400
-
-
-def test_photo_schema_matches_parts():
-    from app.photo import Traits
-
-    assert set(Traits.model_fields) == set(PARTS)

@@ -29,17 +29,16 @@ A cute little fashion app that dresses you up as a tiny ASCII avatar.
 - **Line styles**: classic, soft, dotted, sketch, bold, none.
 - **Shuffle** for a random avatar. The same seed always gives the same avatar, textures included. **Copy** or **save .txt**.
 - **Animate**: pick a feature (body, eyes, mouth, nose, hair, glasses, cheeks, ears, top, outfit), then an action (blink, look, wink, talk, whistle, bob, sway, shimmer, glow...). Mix as many as you like.
-- **From a photo**: take or upload a picture; Claude picks the closest part for each slot, so you get a *simple* avatar built from the same parts, not a detailed pixel-to-character render. The photo is shrunk in the browser, sent to the Claude API, and not stored.
+- **From a photo**: take or upload a picture; local computer vision (OpenCV) finds your face and picks the closest part for each slot: hair length and texture, glasses, smile, blush, neckline and shirt pattern. You get a *simple* avatar built from the same parts, not a detailed pixel-to-character render. No API keys, nothing leaves your server, nothing is stored.
 
 ## Run
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
-export ANTHROPIC_API_KEY=...
 .venv/bin/uvicorn app.main:app --reload
 ```
 
-Open http://localhost:8000. `ANTHROPIC_API_KEY` is only needed for **from photo**.
+Open http://localhost:8000.
 
 ## Test
 
@@ -49,14 +48,14 @@ Open http://localhost:8000. `ANTHROPIC_API_KEY` is only needed for **from photo*
 
 ## Deploy
 
-Stateless, no database. Set `ANTHROPIC_API_KEY` to enable the photo feature. Any host that runs a Docker image or a Python web process works (Fly.io, Render, Railway, Cloud Run...).
+Stateless, no database, no secrets. Any host that runs a Docker image or a Python web process works (Fly.io, Render, Railway, Cloud Run...).
 
 ```bash
 docker build -t ascii-avatar .
 ```
 
 ```bash
-docker run -p 8000:8000 -e ANTHROPIC_API_KEY ascii-avatar
+docker run -p 8000:8000 ascii-avatar
 ```
 
 The container listens on `$PORT` (default 8000). Without Docker, the start command is `uvicorn app.main:app --host 0.0.0.0 --port $PORT` with `requirements.txt` installed.
@@ -79,7 +78,7 @@ The container listens on `$PORT` (default 8000). Without Docker, the start comma
 ```
 app/avatar.py   part library and renderer
 app/motion.py   animation actions
-app/photo.py    photo to parts via the Claude API
+app/photo.py    photo to parts with OpenCV
 app/main.py     FastAPI routes
 static/         single-page frontend
 tests/          pytest suite
