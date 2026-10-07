@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ascii avatar</title>
+<style>
+body { background: #3a3a44; color: #eee; font-family: ui-monospace, Menlo, monospace; margin: 0; min-height: 100vh; display: grid; place-items: center; }
+main { display: flex; flex-wrap: wrap; gap: 2rem; padding: 1.5rem; justify-content: center; align-items: flex-start; max-width: 960px; }
+.stage { display: grid; gap: .75rem; justify-items: center; }
+#art { background: #55555f; padding: 2rem 2.5rem; border-radius: 14px; font-size: 18px; line-height: 1.2; margin: 0; min-width: 14rem; min-height: 11rem; }
+.actions { display: flex; gap: .5rem; }
+button { font: inherit; padding: .45rem .9rem; border-radius: 999px; border: 0; cursor: pointer; background: #55555f; color: #eee; }
+button.primary { background: #ff6fb5; color: #fff; }
+.picker { flex: 1; min-width: 300px; display: grid; gap: 1rem; }
+.tabs { display: flex; flex-wrap: wrap; gap: .4rem; }
+.tabs button.active { background: #ff6fb5; color: #fff; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: .6rem; }
+.tile { background: #4a4a54; border-radius: 12px; padding: .5rem; cursor: pointer; border: 2px solid transparent; display: grid; gap: .3rem; justify-items: center; }
+.tile.active { border-color: #ff6fb5; }
+.tile pre { margin: 0; font-size: 6.5px; line-height: 1.15; }
+.tile span { font-size: 12px; opacity: .8; }
+small { opacity: .6; }
+</style>
+</head>
+<body>
+<main>
+<section class="stage">
+<pre id="art"></pre>
+<small id="seed"></small>
+<div class="actions">
+<button class="primary" id="shuffle">shuffle</button>
+<button id="copy">copy</button>
+</div>
+</section>
+<section class="picker">
+<nav class="tabs" id="tabs"></nav>
+<div class="grid" id="grid"></div>
+</section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let parts = {};
+let seed = 0;
+let slot = "style";
+
+const query = () => "?" + new URLSearchParams({ seed, ...parts });
+
+const tiles = async () => {
+  const options = await (await fetch(`/options/${slot}` + query())).json();
+  $("grid").replaceChildren(...options.map(({ name, art }) => {
+    const tile = document.createElement("div");
+    tile.className = "tile" + (parts[slot] === name ? " active" : "");
+    tile.innerHTML = "<pre></pre><span></span>";
+    tile.querySelector("pre").textContent = art;
+    tile.querySelector("span").textContent = name;
+    tile.onclick = () => { parts[slot] = name; show(); };
+    return tile;
+  }));
+};
+
+const tabs = () => {
+  $("tabs").replaceChildren(...Object.keys(parts).map(name => {
+    const tab = document.createElement("button");
+    tab.textContent = name;
+    tab.className = name === slot ? "active" : "";
+    tab.onclick = () => { slot = name; tabs(); tiles(); };
+    return tab;
+  }));
+};
+
+const show = async (fresh = false) => {
+  const body = await (await fetch("/avatar" + (fresh ? "" : query()))).json();
+  ({ seed, parts } = body);
+  $("art").textContent = body.art;
+  $("seed").textContent = "seed " + seed;
+  tabs();
+  tiles();
+};
+
+$("shuffle").onclick = () => show(true);
+$("copy").onclick = () => navigator.clipboard.writeText($("art").textContent);
+show(true);
+</script>
+</body>
+</html>
