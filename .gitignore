@@ -3,8 +3,3 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .DS_Store
-
-CLAUDE.md
-CLAUDE.local.md
-.claude/
-.mcp.json
