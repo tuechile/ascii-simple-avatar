@@ -48,8 +48,12 @@ MOTION = {
         "glow": raws("cheeks", ["·", "*", "✶", "*", "·", " ", " ", " "]),
     },
     "ears": {
-        "swing": moves("ears", [STILL, DOWN, STILL, DOWN, STILL, DOWN, STILL, DOWN]),
-        "jingle": raws("ears", [None, "✧✧", None, "✦✦", None, None, None, None]),
+        "wiggle": moves("ears", [STILL, UP, STILL, UP, STILL, STILL, STILL, STILL]),
+        "flap": raws("ears", [None, None, "<>", None, "<>", None, None, None]),
+    },
+    "earrings": {
+        "swing": moves("earrings", [STILL, DOWN, STILL, DOWN, STILL, DOWN, STILL, DOWN]),
+        "jingle": raws("earrings", [None, "✧✧", None, "✦✦", None, None, None, None]),
     },
     "top": {
         "bob": moves("top", [STILL, STILL, UP, UP, STILL, STILL, STILL, STILL]),

@@ -199,6 +199,13 @@ CHEEKS = {
 
 EARS = {
     "none": "  ",
+    "round": "()",
+    "pointy": "<>",
+    "curly": "{}",
+}
+
+EARRINGS = {
+    "none": "  ",
     "studs": "°°",
     "hoops": "oo",
     "drops": "◇◇",
@@ -291,10 +298,11 @@ PARTS = {
     "nose": NOSE,
     "mouth": MOUTH,
     "cheeks": CHEEKS,
-    "ears": EARS,
+    "earrings": EARRINGS,
     "top": TOP,
     "outfit": OUTFIT,
     "pattern": PATTERN,
+    "ears": EARS,
 }
 
 
@@ -309,6 +317,7 @@ PREVIEW = {
     "mouth": {"mouth"},
     "cheeks": {"cheeks"},
     "ears": {"ears"},
+    "earrings": {"earrings"},
     "top": {"top"},
     "outfit": {"neck", "outfit"},
     "pattern": {"outfit"},
@@ -389,6 +398,7 @@ def render(parts, seed=0, frame=None, only=None):
     eyes = raw.get("eyes", eyes).format(l=eyes[0], r=eyes[1])
     cheek = raw.get("cheeks", CHEEKS[parts["cheeks"]]) or " "
     ears = raw.get("ears", EARS[parts["ears"]])
+    earrings = raw.get("earrings", EARRINGS[parts["earrings"]])
 
     if shown("neck") and not bodiless:
         stamp(grid, NECK, line=line, shift=shift("neck"))
@@ -408,11 +418,12 @@ def render(parts, seed=0, frame=None, only=None):
         put(grid, 6, raw.get("nose", NOSE[parts["nose"]]), shift("nose"))
     if shown("mouth"):
         put(grid, 8, raw.get("mouth", MOUTH[parts["mouth"]]), shift("mouth"))
-    if shown("ears"):
-        dy, dx = shift("ears")
-        for col, ch in ((left, ears[0]), (right, ears[1])):
-            if ch != " ":
-                place(grid, 6 + dy, col + dx, ch)
+    for layer, row, pair in (("ears", 5, ears), ("earrings", 6, earrings)):
+        if shown(layer):
+            dy, dx = shift(layer)
+            for col, ch in ((left, pair[0]), (right, pair[1])):
+                if ch != " ":
+                    place(grid, row + dy, col + dx, ch)
     if shown("top"):
         stamp(grid, TOP[parts["top"]], shift=shift("top"))
     return "\n".join("".join(row) for row in grid)

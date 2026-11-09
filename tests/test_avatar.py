@@ -177,3 +177,9 @@ def test_photo_maps_traits(monkeypatch):
 
 def test_photo_rejects_non_image():
     assert client.post("/photo", json={"image": "hello"}).status_code == 400
+
+
+def test_ears_sit_above_earrings():
+    rows = render(pick(1, face="oval", hair="bald", top="none", ears="round", earrings="hoops", glasses="none")).split("\n")
+    assert rows[5][3] == "(" and rows[5][13] == ")"
+    assert rows[6][3] == "o" and rows[6][13] == "o"

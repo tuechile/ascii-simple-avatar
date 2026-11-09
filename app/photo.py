@@ -63,7 +63,8 @@ def analyze(img, box):
         "nose": "button",
         "mouth": mouth(gray, area),
         "cheeks": "blush" if lab[area(0.55, 0.75, 0.15, 0.3)][..., 1].mean() - lab[area(0.1, 0.25, 0.3, 0.7)][..., 1].mean() > 6 else "none",
-        "ears": "none",
+        "earrings": "none",
+        "ears": "round",
         "top": "none",
         **outfit(gray, skin, edges, area, share),
     }
