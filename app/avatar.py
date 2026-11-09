@@ -324,6 +324,11 @@ PREVIEW = {
 }
 
 
+TURNS = (-2, -1, 0, 1, 2)
+
+MIRROR = str.maketrans("()[]{}<>/\\◝◜◞◟◐◑▚▞◖◗", ")(][}{><\\/◜◝◟◞◑◐▞▚◗◖")
+
+
 def pick(seed=None, **chosen):
     rng = random.Random(seed)
     return {name: chosen.get(name) or rng.choice(list(options)) for name, options in PARTS.items()}
@@ -340,11 +345,11 @@ def place(grid, row, col, ch):
         grid[row][col] = ch
 
 
-def stamp(grid, layer, fill=None, line=None, shift=(0, 0)):
+def stamp(grid, layer, fill=None, line=None, shift=(0, 0), cut=W):
     top, rows = layer
     for r, text in enumerate(rows, top):
         for c, ch in enumerate(text):
-            if ch == " ":
+            if ch == " " or (r >= 4 and c + shift[1] >= cut):
                 continue
             if ch == "#":
                 ch = fill(r)
@@ -362,6 +367,12 @@ def put(grid, row, text, shift=(0, 0)):
             place(grid, row + shift[0], c + shift[1], ch)
 
 
+def at(grid, row, col, text, shift=(0, 0)):
+    for c, ch in enumerate(text, col):
+        if ch != " ":
+            place(grid, row + shift[0], c + shift[1], ch)
+
+
 def crop(arts):
     grids = [art.split("\n") for art in arts]
     rows = [r for r in range(H) if any(g[r].strip() for g in grids)] or [0]
@@ -369,7 +380,10 @@ def crop(arts):
     return ["\n".join(g[r][cols[0]:cols[-1] + 1] for r in range(rows[0], rows[-1] + 1)) for g in grids]
 
 
-def render(parts, seed=0, frame=None, only=None):
+def render(parts, seed=0, frame=None, only=None, turn=0):
+    if turn < 0:
+        rows = render(parts, seed, frame, only, -turn).split("\n")
+        return "\n".join(row[::-1].translate(MIRROR) for row in rows)
     frame = frame or {}
     parts = {**parts, **frame.get("parts", {})}
     raw = frame.get("raw", {})
@@ -406,24 +420,47 @@ def render(parts, seed=0, frame=None, only=None):
         stamp(grid, OUTFIT[parts["outfit"]], fill=texture("pattern", PATTERN[parts["pattern"]]), shift=shift("outfit"))
     if shown("face"):
         stamp(grid, FACE[parts["face"]], line=line, shift=shift("face"))
+    glasses = GLASSES[parts["glasses"]].format(l=" ", r=" ")
+    nose = raw.get("nose", NOSE[parts["nose"]])
+    mouth = raw.get("mouth", MOUTH[parts["mouth"]])
+    if turn == 0:
+        features = {
+            "eyes": (5, 6, f"{eyes[0]}   {eyes[1]}"),
+            "glasses": (5, 5, glasses),
+            "cheeks": (6, 5, cheek + " " * 5 + cheek),
+            "nose": (6, 8 - len(nose) // 2, nose),
+            "mouth": (8, 8 - len(mouth) // 2, mouth),
+            "ears": (5, left, ears[0] + " " * (right - left - 1) + ears[1]),
+            "earrings": (6, left, earrings[0] + " " * (right - left - 1) + earrings[1]),
+        }
+    elif turn == 1:
+        features = {
+            "eyes": (5, 7, f"{eyes[0]}  {eyes[1]}"),
+            "glasses": (5, 6, glasses[:3] + glasses[4:]),
+            "cheeks": (6, 6, cheek),
+            "nose": (6, 10, nose),
+            "mouth": (8, 9 - len(mouth) // 2, mouth),
+            "ears": (5, left + 1, ears[0]),
+            "earrings": (6, left + 1, earrings[0]),
+        }
+    else:
+        features = {
+            "eyes": (5, 10, eyes[1]),
+            "glasses": (5, 8, glasses[3:]),
+            "cheeks": (6, 8, cheek),
+            "nose": (6, right - 1, nose),
+            "mouth": (8, 11 - len(mouth), mouth),
+            "ears": (5, 6, ears[1]),
+            "earrings": (6, 6, earrings[1]),
+        }
+
     if shown("hair"):
-        stamp(grid, HAIR[parts["hair"]], fill=texture("hair", TEXTURE[parts["texture"]]), shift=shift("hair"))
-    if shown("eyes"):
-        put(grid, 5, f" {eyes[0]}   {eyes[1]} ", shift("eyes"))
-    if shown("glasses"):
-        put(grid, 5, GLASSES[parts["glasses"]].format(l=" ", r=" "), shift("glasses"))
-    if shown("cheeks"):
-        put(grid, 6, cheek + " " * 5 + cheek, shift("cheeks"))
-    if shown("nose"):
-        put(grid, 6, raw.get("nose", NOSE[parts["nose"]]), shift("nose"))
-    if shown("mouth"):
-        put(grid, 8, raw.get("mouth", MOUTH[parts["mouth"]]), shift("mouth"))
-    for layer, row, pair in (("ears", 5, ears), ("earrings", 6, earrings)):
+        dy, dx = shift("hair")
+        stamp(grid, HAIR[parts["hair"]], fill=texture("hair", TEXTURE[parts["texture"]]), shift=(dy, dx - min(turn, 1)), cut=11 if turn == 2 else W)
+    for layer in ("eyes", "glasses", "cheeks", "nose", "mouth", "ears", "earrings"):
         if shown(layer):
-            dy, dx = shift(layer)
-            for col, ch in ((left, pair[0]), (right, pair[1])):
-                if ch != " ":
-                    place(grid, row + dy, col + dx, ch)
+            row, col, text = features[layer]
+            at(grid, row, col, text, shift(layer))
     if shown("top"):
         stamp(grid, TOP[parts["top"]], shift=shift("top"))
     return "\n".join("".join(row) for row in grid)

@@ -28,7 +28,7 @@ main { min-height: 100vh; display: grid; grid-template-columns: 1fr auto 1fr; al
 .block.empty { opacity: .3; }
 .block.active, .block.active:hover { background: var(--blue); opacity: 1; }
 .stage { display: grid; justify-items: center; gap: 8px; }
-.tools { display: flex; gap: 12px; }
+.tools { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; }
 .card { width: min(220px, 70vw); aspect-ratio: 320 / 408; background: var(--black); display: grid; place-items: center; }
 .art { display: grid; grid-template-columns: repeat(var(--cols, 17), calc(var(--cell) * .82)); grid-auto-rows: var(--cell); font-family: var(--glyph); font-size: calc(var(--cell) * 1.25); line-height: var(--cell); font-weight: bold; }
 .art span { text-align: center; }
@@ -64,11 +64,19 @@ h1 { margin: 0; font-size: 2em; font-weight: bold; text-align: center; }
 <h1>ASCII AVATAR</h1>
 <div class="tools">
 <button class="link" id="shuffle">shuffle</button>
-<button class="link" id="copy">copy</button>
 <button class="link" id="snap">from photo</button>
+<button class="link" id="copy">copy text</button>
+<button class="link" id="css">copy css</button>
 <input type="file" id="file" accept="image/*" capture="user" hidden>
 </div>
 <div class="card"><div class="art" id="art"></div></div>
+<nav class="tools" id="turns">
+<button class="link" data-turn="-2" aria-label="turn left 90 degrees">&lt;&lt;</button>
+<button class="link" data-turn="-1" aria-label="turn left 45 degrees">&lt;</button>
+<button class="link" data-turn="0">front</button>
+<button class="link" data-turn="1" aria-label="turn right 45 degrees">&gt;</button>
+<button class="link" data-turn="2" aria-label="turn right 90 degrees">&gt;&gt;</button>
+</nav>
 <span class="status" id="status"></span>
 </section>
 </main>
@@ -95,7 +103,7 @@ const BLOCKS = {
   body: { box: [27, 332, 303, 138], slots: { outfit: "shape", pattern: "pattern" }, motions: { outfit: "outfit" } },
 };
 const EMPTY = ["bald", "none"];
-let state = { seed: 0, parts: {}, art: "" };
+let state = { seed: 0, parts: {}, turn: 0, art: "" };
 let block = null;
 let tab = "dress";
 let motions = {};
@@ -105,7 +113,7 @@ let timer = null;
 const PYODIDE = "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/";
 const CODE = ["__init__.py", "avatar.py", "motion.py", "service.py", "photo.py"];
 const CASCADES = ["frontalface_default", "eye", "smile"].map(name => `cascades/haarcascade_${name}.xml`);
-const params = (extra = {}) => ({ seed: String(state.seed), ...state.parts, ...extra });
+const params = (extra = {}) => ({ seed: String(state.seed), turn: String(state.turn), ...state.parts, ...extra });
 const ROUTES = {
   motions: () => "motions",
   avatar: p => "avatar?" + new URLSearchParams(p),
@@ -252,11 +260,12 @@ const animate = async () => {
 
 const apply = body => {
   state = body;
+  document.querySelectorAll("#turns button").forEach(b => b.classList.toggle("active", Number(b.dataset.turn) === state.turn));
   panel();
   animate();
 };
 
-const show = async (fresh = false) => apply(await api("avatar", fresh ? {} : params()));
+const show = async (fresh = false) => apply(await api("avatar", fresh ? { turn: String(state.turn) } : params()));
 
 const shrink = file => new Promise((resolve, reject) => {
   const img = new Image();
@@ -286,13 +295,27 @@ $("file").onchange = async () => {
 document.querySelectorAll(".tabs button").forEach(button => button.onclick = () => { tab = button.dataset.tab; panel(); });
 document.addEventListener("keydown", event => { if (event.key === "Escape") open(null); });
 $("close").onclick = () => open(null);
+document.querySelectorAll("#turns button").forEach(button => button.onclick = () => { state.turn = Number(button.dataset.turn); show(); });
 $("snap").onclick = () => $("file").click();
 $("shuffle").onclick = () => show(true);
-$("copy").onclick = async () => {
-  await navigator.clipboard.writeText(state.art);
+const css = art => `.ascii-avatar::before {
+  content: "${art.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\A ")}";
+  display: inline-block;
+  white-space: pre;
+  font: bold 14px/1 "Courier New", Courier, monospace;
+  color: #ffffff;
+  background: #000000;
+  padding: 2em 1.5em;
+}`;
+
+const clip = async text => {
+  await navigator.clipboard.writeText(text);
   say("copied!");
   setTimeout(() => say(""), 900);
 };
+
+$("copy").onclick = () => clip(state.art);
+$("css").onclick = () => clip(css(state.art));
 api("motions").then(body => { motions = body; show(true); });
 </script>
 </body>

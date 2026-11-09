@@ -183,3 +183,27 @@ def test_ears_sit_above_earrings():
     rows = render(pick(1, face="oval", hair="bald", top="none", ears="round", earrings="hoops", glasses="none")).split("\n")
     assert rows[5][3] == "(" and rows[5][13] == ")"
     assert rows[6][3] == "o" and rows[6][13] == "o"
+
+
+def test_every_turn_renders_on_grid():
+    from app.avatar import TURNS
+
+    for seed, turn in product(range(20), TURNS):
+        rows = render(pick(seed), seed, turn=turn).split("\n")
+        assert len(rows) == H and all(len(row) == W for row in rows)
+
+
+def test_turns_differ_and_mirror():
+    parts = pick(1, glasses="round", eyes="round", outfit="none", top="none", hair="bald")
+    arts = [render(parts, 1, turn=t) for t in (-2, -1, 0, 1, 2)]
+    assert len(set(arts)) == 5
+    assert "(o)(o)" in arts[3] and "(o)(o)" in arts[1]
+    assert "-(o)" in arts[4] and "(o)-" in arts[0]
+
+
+def test_turn_endpoint():
+    body = client.get("/avatar", params={"seed": 1, "turn": 2}).json()
+    assert body["turn"] == 2 and body["art"] == render(body["parts"], 1, turn=2)
+    assert client.get("/avatar", params={"turn": 3}).status_code == 400
+    frames = client.get("/animate", params={"seed": 1, "turn": -1, "play": "eyes:blink"}).json()["frames"]
+    assert frames[0] == render(pick(1), 1, turn=-1)

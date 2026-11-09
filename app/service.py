@@ -3,7 +3,7 @@ import binascii
 import random
 import re
 
-from app.avatar import PARTS, PREVIEW, crop, pick, render
+from app.avatar import PARTS, PREVIEW, TURNS, crop, pick, render
 from app.motion import FPS, MOTION, frames
 
 DATA_URL = re.compile(r"data:(image/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)")
@@ -34,6 +34,13 @@ def number(params, name, default):
         raise Invalid(400, f"{name} must be a number")
 
 
+def facing(params):
+    turn = number(params, "turn", 0)
+    if turn not in TURNS:
+        raise Invalid(400, "turn must be between -2 and 2")
+    return turn
+
+
 def parse_play(text):
     play = dict(item.split(":", 1) for item in text.split(",") if ":" in item)
     for feature, action in play.items():
@@ -53,7 +60,8 @@ def motions():
 def avatar(params):
     seed = number(params, "seed", random.randrange(10**9))
     selected = resolve(params, seed)
-    return {"seed": seed, "parts": selected, "art": render(selected, seed)}
+    turn = facing(params)
+    return {"seed": seed, "parts": selected, "turn": turn, "art": render(selected, seed, turn=turn)}
 
 
 def options(slot, params):
@@ -73,8 +81,9 @@ def options(slot, params):
 def animate(params):
     seed = number(params, "seed", 0)
     selected = resolve(params, seed)
+    turn = facing(params)
     play = parse_play(params.get("play") or "")
-    return {"fps": FPS, "frames": [render(selected, seed, frame) for frame in frames(play)]}
+    return {"fps": FPS, "frames": [render(selected, seed, frame, turn=turn) for frame in frames(play)]}
 
 
 def photo(image):
@@ -88,4 +97,4 @@ def photo(image):
     except (reader.NoFace, binascii.Error):
         raise Invalid(422, "no face found, try a front-facing photo with good light")
     seed = random.randrange(10**9)
-    return {"seed": seed, "parts": selected, "art": render(selected, seed)}
+    return {"seed": seed, "parts": selected, "turn": 0, "art": render(selected, seed)}
