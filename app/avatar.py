@@ -223,6 +223,7 @@ TOP = {
 }
 
 OUTFIT = {
+    "none": (12, []),
     "tee": (12, [
         "    ###   ###",
         "  #############",
@@ -297,6 +298,23 @@ PARTS = {
 }
 
 
+PREVIEW = {
+    "line": {"face"},
+    "face": {"face"},
+    "hair": {"hair"},
+    "texture": {"hair"},
+    "eyes": {"eyes"},
+    "glasses": {"eyes", "glasses"},
+    "nose": {"nose"},
+    "mouth": {"mouth"},
+    "cheeks": {"cheeks"},
+    "ears": {"ears"},
+    "top": {"top"},
+    "outfit": {"neck", "outfit"},
+    "pattern": {"outfit"},
+}
+
+
 def pick(seed=None, **chosen):
     rng = random.Random(seed)
     return {name: chosen.get(name) or rng.choice(list(options)) for name, options in PARTS.items()}
@@ -335,17 +353,29 @@ def put(grid, row, text, shift=(0, 0)):
             place(grid, row + shift[0], c + shift[1], ch)
 
 
-def render(parts, seed=0, frame=None):
+def crop(arts):
+    grids = [art.split("\n") for art in arts]
+    rows = [r for r in range(H) if any(g[r].strip() for g in grids)] or [0]
+    cols = [c for c in range(W) if any(g[r][c] != " " for g in grids for r in range(H))] or [0]
+    return ["\n".join(g[r][cols[0]:cols[-1] + 1] for r in range(rows[0], rows[-1] + 1)) for g in grids]
+
+
+def render(parts, seed=0, frame=None, only=None):
     frame = frame or {}
     parts = {**parts, **frame.get("parts", {})}
     raw = frame.get("raw", {})
     tick = frame.get("tick", {})
     moves = frame.get("move", {})
 
+    bodiless = parts["outfit"] == "none"
+
     def shift(layer):
         dy, dx = moves.get(layer, (0, 0))
         ay, ax = moves.get("all", (0, 0))
-        return dy + ay, dx + ax
+        return dy + ay + 2 * bodiless, dx + ax
+
+    def shown(layer):
+        return only is None or layer in only
 
     def texture(name, chars):
         return filler(chars, random.Random(f"{seed}:{name}:{tick.get(name, 0)}"))
@@ -360,18 +390,29 @@ def render(parts, seed=0, frame=None):
     cheek = raw.get("cheeks", CHEEKS[parts["cheeks"]]) or " "
     ears = raw.get("ears", EARS[parts["ears"]])
 
-    stamp(grid, NECK, line=line, shift=shift("neck"))
-    stamp(grid, OUTFIT[parts["outfit"]], fill=texture("pattern", PATTERN[parts["pattern"]]), shift=shift("outfit"))
-    stamp(grid, FACE[parts["face"]], line=line, shift=shift("face"))
-    stamp(grid, HAIR[parts["hair"]], fill=texture("hair", TEXTURE[parts["texture"]]), shift=shift("hair"))
-    put(grid, 5, f" {eyes[0]}   {eyes[1]} ", shift("eyes"))
-    put(grid, 5, GLASSES[parts["glasses"]].format(l=" ", r=" "), shift("glasses"))
-    put(grid, 6, cheek + " " * 5 + cheek, shift("cheeks"))
-    put(grid, 6, raw.get("nose", NOSE[parts["nose"]]), shift("nose"))
-    put(grid, 8, raw.get("mouth", MOUTH[parts["mouth"]]), shift("mouth"))
-    dy, dx = shift("ears")
-    for col, ch in ((left, ears[0]), (right, ears[1])):
-        if ch != " ":
-            place(grid, 6 + dy, col + dx, ch)
-    stamp(grid, TOP[parts["top"]], shift=shift("top"))
+    if shown("neck") and not bodiless:
+        stamp(grid, NECK, line=line, shift=shift("neck"))
+    if shown("outfit"):
+        stamp(grid, OUTFIT[parts["outfit"]], fill=texture("pattern", PATTERN[parts["pattern"]]), shift=shift("outfit"))
+    if shown("face"):
+        stamp(grid, FACE[parts["face"]], line=line, shift=shift("face"))
+    if shown("hair"):
+        stamp(grid, HAIR[parts["hair"]], fill=texture("hair", TEXTURE[parts["texture"]]), shift=shift("hair"))
+    if shown("eyes"):
+        put(grid, 5, f" {eyes[0]}   {eyes[1]} ", shift("eyes"))
+    if shown("glasses"):
+        put(grid, 5, GLASSES[parts["glasses"]].format(l=" ", r=" "), shift("glasses"))
+    if shown("cheeks"):
+        put(grid, 6, cheek + " " * 5 + cheek, shift("cheeks"))
+    if shown("nose"):
+        put(grid, 6, raw.get("nose", NOSE[parts["nose"]]), shift("nose"))
+    if shown("mouth"):
+        put(grid, 8, raw.get("mouth", MOUTH[parts["mouth"]]), shift("mouth"))
+    if shown("ears"):
+        dy, dx = shift("ears")
+        for col, ch in ((left, ears[0]), (right, ears[1])):
+            if ch != " ":
+                place(grid, 6 + dy, col + dx, ch)
+    if shown("top"):
+        stamp(grid, TOP[parts["top"]], shift=shift("top"))
     return "\n".join("".join(row) for row in grid)

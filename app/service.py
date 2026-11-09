@@ -3,10 +3,13 @@ import binascii
 import random
 import re
 
-from app.avatar import PARTS, pick, render
+from app.avatar import PARTS, PREVIEW, crop, pick, render
 from app.motion import FPS, MOTION, frames
 
 DATA_URL = re.compile(r"data:(image/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)")
+
+
+STAND_IN = {"texture": ("hair", "bald", "bob"), "pattern": ("outfit", "none", "tee")}
 
 
 class Invalid(Exception):
@@ -58,7 +61,13 @@ def options(slot, params):
         raise Invalid(404, f"unknown slot: {slot}")
     seed = number(params, "seed", 0)
     base = resolve(params, seed)
-    return [{"name": name, "art": render({**base, slot: name}, seed)} for name in PARTS[slot]]
+    if slot in STAND_IN:
+        host, empty, stand_in = STAND_IN[slot]
+        if base[host] == empty:
+            base[host] = stand_in
+    names = list(PARTS[slot])
+    arts = crop([render({**base, slot: name}, seed, only=PREVIEW[slot]) for name in names])
+    return [{"name": name, "art": art} for name, art in zip(names, arts)]
 
 
 def animate(params):

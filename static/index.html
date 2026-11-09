@@ -6,107 +6,121 @@
 <title>ascii avatar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #201126;
-  --panel: #2c1a35;
-  --chip: #3a2645;
-  --text: #f3e9ff;
-  --muted: #a993b8;
-  --card: #c7a9e3;
-  --ink: #3e326f;
-  --accent: #ff8fc7;
+  --bg: #9e2350;
+  --pink: #e0849a;
+  --pink-light: #eda5b5;
+  --mustard: #d18f2a;
+  --blue: #769fc2;
+  --ink: #5a1230;
+  --title: #f2b8ae;
   --glyph: "Lucida Console", Monaco, Menlo, "DejaVu Sans Mono", monospace;
+  --label: "Barlow Condensed", "Arial Narrow", sans-serif;
 }
-* { box-sizing: border-box; }
-body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); font-family: "DM Mono", ui-monospace, monospace; }
-header { text-align: center; padding: 2.5rem 1rem 1rem; }
-h1 { font-family: "Fredoka", sans-serif; font-weight: 600; font-size: clamp(2rem, 6vw, 3rem); margin: 0; letter-spacing: -.02em; }
-header p { color: var(--muted); margin: .4rem 0 0; }
-main { display: flex; flex-wrap: wrap; gap: 2rem; padding: 1.5rem 16px 3rem; justify-content: center; align-items: flex-start; max-width: 1080px; margin: 0 auto; }
-.stage { display: grid; gap: 1rem; justify-items: center; position: sticky; top: 1.5rem; }
-.card { background: var(--card); color: var(--ink); border-radius: 16px; padding: 1.1rem; box-shadow: 0 0 0 4px #00000033, 0 20px 40px #0006; }
-.art { display: grid; grid-template-columns: repeat(17, calc(var(--cell) * .82)); grid-auto-rows: var(--cell); font-family: var(--glyph); font-size: calc(var(--cell) * 1.3); line-height: var(--cell); font-weight: 700; }
+* { box-sizing: border-box; border-radius: 0; }
+body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font-family: var(--label); overflow-x: hidden; }
+button { font: inherit; color: inherit; border: 0; padding: 0; cursor: pointer; background: none; }
+button:focus-visible { outline: 3px solid var(--title); outline-offset: 2px; }
+main { min-height: 100vh; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 2rem; padding: 2rem 16px; }
+.diagram { justify-self: center; position: relative; width: min(330px, 80vw); aspect-ratio: 330 / 470; }
+.block { position: absolute; left: calc(var(--x) * 100% / 330); top: calc(var(--y) * 100% / 470); width: calc(var(--w) * 100% / 330); height: calc(var(--h) * 100% / 470); background: var(--blue); transition: background .15s, opacity .15s; }
+.block.feature { background: var(--mustard); }
+.block:hover { background: #8fb4d4; }
+.block.feature:hover { background: #e2a03c; }
+.block.empty { opacity: .45; }
+.block.active, .block.active:hover { background: var(--pink); opacity: 1; }
+.stage { display: grid; justify-items: center; gap: 8px; }
+.tools { display: flex; gap: 12px; }
+.tool { width: 98px; height: 50px; background: var(--pink); display: grid; place-items: center; transition: background .15s; }
+.tool:hover { background: var(--pink-light); }
+.tool svg { width: 52px; height: 36px; }
+.card { width: min(320px, 82vw); aspect-ratio: 320 / 408; background: var(--mustard); display: grid; place-items: center; }
+.art { display: grid; grid-template-columns: repeat(var(--cols, 17), calc(var(--cell) * .82)); grid-auto-rows: var(--cell); font-family: var(--glyph); font-size: calc(var(--cell) * 1.25); line-height: var(--cell); font-weight: 700; color: var(--ink); }
 .art span { text-align: center; }
-.card .art { --cell: clamp(9px, 2.6vw, 13px); }
-.meta { color: var(--muted); font-size: .8rem; }
-.actions { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: center; }
-button { font: inherit; color: var(--text); background: var(--chip); border: 0; border-radius: 999px; padding: .5rem 1rem; cursor: pointer; transition: transform .1s, background .15s; }
-button:hover { background: #4a3358; }
-button:active { transform: scale(.96); }
-button.primary { background: var(--accent); color: var(--bg); font-weight: 500; }
-.picker { flex: 1 1 420px; max-width: 600px; background: var(--panel); border-radius: 20px; padding: 1.25rem; display: grid; gap: 1.1rem; }
-.groups { display: grid; gap: .7rem; }
-.group { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
-.group b { font-weight: 400; color: var(--muted); font-size: .75rem; width: 4.2rem; text-transform: uppercase; letter-spacing: .08em; }
-.group button { padding: .35rem .8rem; font-size: .85rem; }
-.group button.active { background: var(--accent); color: var(--bg); }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: .6rem; }
-.tile { background: var(--card); color: var(--ink); border-radius: 14px; padding: .6rem .4rem .45rem; display: grid; gap: .35rem; justify-items: center; border: 3px solid transparent; }
-.tile:hover { background: #d4bbec; }
-.tile.active { border-color: var(--accent); }
-.tile .art { --cell: 6px; }
-.tile span.name { font-size: .72rem; }
-.modes { display: flex; background: var(--bg); border-radius: 999px; padding: 4px; width: fit-content; }
-.modes button { background: transparent; padding: .35rem 1rem; }
-.modes button.active { background: var(--card); color: var(--ink); }
-.group button.on { box-shadow: inset 0 0 0 2px var(--accent); }
-.playing { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; min-height: 2rem; }
-.playing button { background: var(--card); color: var(--ink); font-size: .8rem; padding: .3rem .7rem; }
-.hint { color: var(--muted); font-size: .75rem; margin: 0; }
-.status { color: var(--accent); font-size: .8rem; min-height: 1.1em; }
+.card .art { --cell: min(15px, 3.7vw); }
+.status { color: var(--title); font-size: 1rem; letter-spacing: .08em; text-transform: uppercase; min-height: 1.3em; }
+h1 { margin: 0; color: var(--title); font-weight: 500; font-size: clamp(3rem, 8vw, 4.6rem); line-height: 1.15; letter-spacing: .14em; text-align: center; padding-left: .14em; }
+.panel { position: fixed; right: 0; top: 12vh; height: 74vh; width: min(440px, 30vw); background: var(--pink); display: flex; flex-direction: column; transform: translateX(105%); transition: transform .25s ease; z-index: 2; }
+.panel.open { transform: none; }
+.panel header { display: flex; align-items: center; justify-content: space-between; padding: 20px 20px 12px; }
+.panel h2 { margin: 0; font-weight: 600; font-size: 2rem; letter-spacing: .14em; text-transform: uppercase; }
+.close { width: 36px; height: 36px; background: var(--bg); position: relative; }
+.close::before, .close::after { content: ""; position: absolute; left: 8px; top: 16px; width: 20px; height: 4px; background: var(--pink); transform: rotate(45deg); }
+.close::after { transform: rotate(-45deg); }
+.tabs { display: flex; gap: 8px; padding: 0 20px 16px; }
+.tabs button { flex: 1; height: 40px; background: var(--pink-light); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; font-size: 1.05rem; }
+.tabs button.active { background: var(--bg); color: var(--pink); }
+.body { overflow-y: auto; padding: 0 20px 20px; display: grid; gap: 20px; align-content: start; }
+.body h3 { margin: 0 0 8px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; font-size: 1rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.tile { background: var(--pink-light); aspect-ratio: 1; display: grid; grid-template-rows: 1fr auto; place-items: center; padding: 6px 4px 4px; transition: background .15s; }
+.tile:hover { background: #f3bcc8; }
+.tile.active { background: var(--mustard); }
+.tile .name { font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips button { height: 36px; padding: 0 14px; background: var(--pink-light); letter-spacing: .1em; text-transform: uppercase; font-size: .95rem; }
+.chips button:hover { background: #f3bcc8; }
+.chips button.active { background: var(--mustard); }
+.chips button.stop { background: var(--bg); color: var(--pink); }
+.hint { margin: 0; letter-spacing: .06em; }
 [hidden] { display: none !important; }
-@media (max-width: 700px) { .stage { position: static; } .group b { width: 100%; } }
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; gap: 2.5rem; }
+  .diagram { order: 2; width: min(280px, 72vw); }
+  .panel { top: auto; bottom: 0; left: 0; width: 100%; height: 62vh; transform: translateY(105%); }
+}
 </style>
 </head>
 <body>
-<header>
-<h1>ascii avatar</h1>
-<p>dress up a tiny character</p>
-</header>
 <main>
+<section class="diagram" id="diagram" aria-label="pick a part"></section>
 <section class="stage">
-<div class="card"><div class="art" id="art"></div></div>
-<span class="meta" id="seed"></span>
-<div class="actions">
-<button class="primary" id="shuffle">shuffle</button>
-<button id="copy">copy</button>
-<button id="save">save .txt</button>
-<button id="snap">from photo</button>
+<div class="tools">
+<button class="tool" id="shuffle" title="shuffle" aria-label="shuffle">
+<svg viewBox="0 0 52 36"><rect x="9" y="1" width="34" height="34" fill="var(--bg)"/><circle cx="19" cy="9" r="3.5" fill="var(--pink)"/><circle cx="33" cy="9" r="3.5" fill="var(--pink)"/><circle cx="19" cy="18" r="3.5" fill="var(--pink)"/><circle cx="33" cy="18" r="3.5" fill="var(--pink)"/><circle cx="19" cy="27" r="3.5" fill="var(--pink)"/><circle cx="33" cy="27" r="3.5" fill="var(--pink)"/></svg>
+</button>
+<button class="tool" id="copy" title="copy" aria-label="copy">
+<svg viewBox="0 0 52 36"><rect x="14" y="1" width="24" height="34" fill="var(--bg)"/><rect x="20" y="4" width="12" height="3" fill="var(--pink)"/></svg>
+</button>
+<button class="tool" id="snap" title="from photo" aria-label="from photo">
+<svg viewBox="0 0 52 36"><rect x="2" y="2" width="48" height="32" fill="var(--bg)"/><circle cx="10" cy="9" r="4" fill="var(--pink)"/><circle cx="29" cy="19" r="9" fill="var(--pink)"/></svg>
+</button>
 <input type="file" id="file" accept="image/*" capture="user" hidden>
 </div>
+<div class="card"><div class="art" id="art"></div></div>
 <span class="status" id="status"></span>
-</section>
-<section class="picker">
-<nav class="modes">
-<button class="active" data-mode="dress">dress up</button>
-<button data-mode="animate">animate</button>
-</nav>
-<div id="dress" class="groups">
-<div class="groups" id="groups"></div>
-<div class="grid" id="grid"></div>
-</div>
-<div id="animate" class="groups" hidden>
-<p class="hint">pick a feature, then pick what it does. mix as many as you like.</p>
-<div class="group" id="features"></div>
-<div class="group" id="actions"></div>
-<div class="playing" id="playing"></div>
-</div>
+<h1>ASCII<br>AVATAR</h1>
 </section>
 </main>
+<aside class="panel" id="panel" aria-live="polite">
+<header><h2 id="heading"></h2><button class="close" id="close" aria-label="close"></button></header>
+<nav class="tabs">
+<button class="active" data-tab="dress">dress</button>
+<button data-tab="animate">animate</button>
+</nav>
+<div class="body" id="dress"></div>
+<div class="body" id="animate" hidden></div>
+</aside>
 <script>
 const $ = id => document.getElementById(id);
 const make = (tag, props = {}) => Object.assign(document.createElement(tag), props);
-const GROUPS = {
-  face: ["face", "line", "eyes", "glasses", "nose", "mouth", "cheeks"],
-  hair: ["hair", "texture", "top"],
-  outfit: ["outfit", "pattern", "ears"],
+const BLOCKS = {
+  hair: { box: [32, 0, 270, 58], slots: { hair: "style", texture: "texture", top: "hat" }, motions: { hair: "hair", top: "hat" } },
+  face: { box: [54, 65, 213, 214], slots: { face: "shape", line: "line" }, motions: { body: "whole avatar" } },
+  ears: { box: [0, 120, 37, 82], slots: { ears: "ears" }, motions: { ears: "ears" } },
+  eyes: { box: [139, 119, 51, 37], slots: { eyes: "eyes", glasses: "glasses" }, motions: { eyes: "eyes", glasses: "glasses" }, feature: true },
+  cheeks: { box: [81, 169, 47, 45], slots: { cheeks: "cheeks" }, motions: { cheeks: "cheeks" }, feature: true },
+  nose: { box: [165, 169, 17, 46], slots: { nose: "nose" }, motions: { nose: "nose" }, feature: true },
+  mouth: { box: [113, 232, 88, 25], slots: { mouth: "mouth" }, motions: { mouth: "mouth" }, feature: true },
+  body: { box: [27, 332, 303, 138], slots: { outfit: "shape", pattern: "pattern" }, motions: { outfit: "outfit" } },
 };
+const EMPTY = ["bald", "none"];
 let state = { seed: 0, parts: {}, art: "" };
-let slot = "face";
+let block = null;
+let tab = "dress";
 let motions = {};
-let feature = "eyes";
 let play = {};
 let timer = null;
 
@@ -124,19 +138,21 @@ const server = fetch("health").then(res => res.ok).catch(() => false);
 let python = null;
 let vision = null;
 
+const say = text => $("status").textContent = text;
+
 const script = src => new Promise((resolve, reject) => document.head.append(make("script", { src, onload: resolve, onerror: reject })));
 
 const copy = (py, files) => Promise.all(files.map(async file =>
   py.FS.writeFile(`/home/pyodide/app/${file}`, new Uint8Array(await (await fetch(`app/${file}`)).arrayBuffer()))));
 
 const boot = () => python ??= (async () => {
-  $("status").textContent = "warming up python...";
+  say("warming up python...");
   await script(PYODIDE + "pyodide.js");
   const py = await loadPyodide({ indexURL: PYODIDE });
   py.FS.mkdirTree("/home/pyodide/app/cascades");
   await copy(py, CODE);
   py.runPython("import sys; sys.path.insert(0, '/home/pyodide')");
-  $("status").textContent = "";
+  say("");
   return { py, service: py.pyimport("app.service") };
 })();
 
@@ -162,44 +178,90 @@ const api = async (name, ...args) => {
 };
 
 const draw = (el, art) => {
-  el.replaceChildren(...[...art.replace(/\n/g, "")].map(ch => make("span", { textContent: ch })));
+  const lines = art.split("\n");
+  el.style.setProperty("--cols", [...lines[0]].length);
+  el.replaceChildren(...[...lines.join("")].map(ch => make("span", { textContent: ch })));
   return el;
+};
+
+const preview = art => {
+  const lines = art.split("\n");
+  const size = Math.min(72 / lines.length, 76 / ([...lines[0]].length * .82));
+  const el = draw(make("div", { className: "art" }), art);
+  el.style.setProperty("--cell", Math.max(3, Math.min(14, Math.floor(size))) + "px");
+  return el;
+};
+
+const diagram = () => {
+  $("diagram").replaceChildren(...Object.entries(BLOCKS).map(([name, { box, slots, feature }]) => {
+    const [x, y, w, h] = box;
+    const main = Object.keys(slots)[0];
+    const el = make("button", { className: "block", title: name, ariaLabel: name, onclick: () => open(block === name ? null : name) });
+    el.classList.toggle("feature", !!feature);
+    el.classList.toggle("active", block === name);
+    el.classList.toggle("empty", EMPTY.includes(state.parts[main]));
+    Object.entries({ x, y, w, h }).forEach(([key, value]) => el.style.setProperty("--" + key, value));
+    return el;
+  }));
 };
 
 const chip = (text, active, onclick, extra = "") => make("button", { textContent: text, className: (active ? "active " : "") + extra, onclick });
 
-const tiles = async () => {
-  const options = await api("options", slot, params());
-  $("grid").replaceChildren(...options.map(({ name, art }) => {
-    const tile = make("button", { className: "tile" + (state.parts[slot] === name ? " active" : "") });
-    tile.append(draw(make("div", { className: "art" }), art), make("span", { className: "name", textContent: name }));
-    tile.onclick = () => { state.parts[slot] = name; show(); };
-    return tile;
+const section = (title, ...children) => {
+  const el = make("section");
+  el.append(make("h3", { textContent: title }), ...children);
+  return el;
+};
+
+const dress = async () => {
+  const slots = Object.entries(BLOCKS[block].slots);
+  const all = await Promise.all(slots.map(([slot]) => api("options", slot, params())));
+  $("dress").replaceChildren(...slots.map(([slot, title], i) => {
+    const grid = make("div", { className: "grid" });
+    grid.append(...all[i].map(({ name, art }) => {
+      const tile = make("button", { className: "tile" + (state.parts[slot] === name ? " active" : ""), onclick: () => { state.parts[slot] = name; show(); } });
+      tile.append(preview(art), make("span", { className: "name", textContent: name }));
+      return tile;
+    }));
+    return section(title, grid);
   }));
 };
 
-const tabs = () => {
-  $("groups").replaceChildren(...Object.entries(GROUPS).map(([group, slots]) => {
-    const row = make("div", { className: "group" });
-    row.append(make("b", { textContent: group }), ...slots.map(name => chip(name, name === slot, () => { slot = name; tabs(); tiles(); })));
-    return row;
-  }));
-};
-
-const motionUi = () => {
-  $("features").replaceChildren(make("b", { textContent: "feature" }), ...Object.keys(motions).map(name =>
-    chip(name, name === feature, () => { feature = name; motionUi(); }, play[name] ? "on" : "")));
-  $("actions").replaceChildren(make("b", { textContent: "action" }),
-    chip("still", !play[feature], () => { delete play[feature]; animate(); }),
-    ...motions[feature].map(action => chip(action, play[feature] === action, () => { play[feature] = action; animate(); })));
+const moves = () => {
+  const sections = Object.entries(BLOCKS[block].motions).map(([feature, title]) => {
+    const row = make("div", { className: "chips" });
+    row.append(
+      chip("still", !play[feature], () => { delete play[feature]; animate(); }),
+      ...motions[feature].map(action => chip(action, play[feature] === action, () => { play[feature] = action; animate(); })));
+    return section(title, row);
+  });
   const active = Object.entries(play);
-  $("playing").replaceChildren(...active.map(([name, action]) =>
-    make("button", { textContent: `${name} · ${action} ×`, onclick: () => { delete play[name]; animate(); } })));
-  if (active.length) $("playing").append(chip("stop all", false, () => { play = {}; animate(); }));
+  const playing = make("div", { className: "chips" });
+  playing.append(...active.map(([name, action]) => chip(`${name} · ${action} ×`, true, () => { delete play[name]; animate(); })));
+  if (active.length) playing.append(chip("stop all", false, () => { play = {}; animate(); }, "stop"));
+  else playing.append(make("p", { className: "hint", textContent: "nothing yet. mix as many as you like." }));
+  $("animate").replaceChildren(...sections, section("playing", playing));
+};
+
+const panel = () => {
+  diagram();
+  $("panel").classList.toggle("open", !!block);
+  if (!block) return;
+  $("heading").textContent = block;
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  $("dress").hidden = tab !== "dress";
+  $("animate").hidden = tab !== "animate";
+  if (tab === "dress") dress();
+  else moves();
+};
+
+const open = name => {
+  block = name;
+  panel();
 };
 
 const animate = async () => {
-  motionUi();
+  if (block && tab === "animate") moves();
   clearInterval(timer);
   const entries = Object.entries(play);
   if (!entries.length) return draw($("art"), state.art);
@@ -212,19 +274,11 @@ const animate = async () => {
 
 const apply = body => {
   state = body;
-  $("seed").textContent = "seed " + state.seed;
-  tabs();
-  tiles();
+  panel();
   animate();
 };
 
 const show = async (fresh = false) => apply(await api("avatar", fresh ? {} : params()));
-
-const flash = (button, text) => {
-  const old = button.textContent;
-  button.textContent = text;
-  setTimeout(() => button.textContent = old, 900);
-};
 
 const shrink = file => new Promise((resolve, reject) => {
   const img = new Image();
@@ -242,27 +296,24 @@ $("file").onchange = async () => {
   const file = $("file").files[0];
   $("file").value = "";
   if (!file) return;
-  $("status").textContent = "reading your face...";
+  say("reading your face...");
   try {
     apply(await api("photo", await shrink(file)));
-    $("status").textContent = "";
+    say("");
   } catch (error) {
-    $("status").textContent = error.message || "could not read that photo";
+    say(error.message || "could not read that photo");
   }
 };
 
-document.querySelectorAll(".modes button").forEach(button => button.onclick = () => {
-  document.querySelectorAll(".modes button").forEach(b => b.classList.toggle("active", b === button));
-  $("dress").hidden = button.dataset.mode !== "dress";
-  $("animate").hidden = button.dataset.mode !== "animate";
-});
-
+document.querySelectorAll(".tabs button").forEach(button => button.onclick = () => { tab = button.dataset.tab; panel(); });
+document.addEventListener("keydown", event => { if (event.key === "Escape") open(null); });
+$("close").onclick = () => open(null);
 $("snap").onclick = () => $("file").click();
 $("shuffle").onclick = () => show(true);
-$("copy").onclick = async () => { await navigator.clipboard.writeText(state.art); flash($("copy"), "copied!"); };
-$("save").onclick = () => {
-  const link = make("a", { href: URL.createObjectURL(new Blob([state.art], { type: "text/plain" })), download: `avatar-${state.seed}.txt` });
-  link.click();
+$("copy").onclick = async () => {
+  await navigator.clipboard.writeText(state.art);
+  say("copied!");
+  setTimeout(() => say(""), 900);
 };
 api("motions").then(body => { motions = body; show(true); });
 </script>

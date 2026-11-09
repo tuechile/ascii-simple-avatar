@@ -26,11 +26,11 @@ A cute little fashion app that dresses you up as a tiny ASCII avatar.
 
 ## Features
 
-- **Dress up** Picrew-style: tabs grouped into face (face, line, eyes, glasses, nose, mouth, cheeks), hair (hair, texture, top) and outfit (outfit, pattern, ears). Each tile previews your avatar with that option swapped in.
+- **Dress up**: click a part on the little block diagram (hair, face, ear, eyes, cheeks, nose, mouth, body) and a side panel opens with its options. Face has shape + line, eyes has eyes + glasses, hair has style + texture + hat, body has shape + pattern. Each tile shows just that part. Pick body "none" for a face-only avatar.
 - **Art style** inspired by The Pudding's [30 minutes with a stranger](https://pudding.cool/2025/06/hello-stranger/): a 17x18 character grid, hair and clothes filled with glyph textures (`■◆▲`, `▰`, `◝`, `□◠▾`...), light outlines, single-glyph features.
 - **Line styles**: classic, soft, dotted, sketch, bold, none.
-- **Shuffle** for a random avatar. The same seed always gives the same avatar, textures included. **Copy** or **save .txt**.
-- **Animate**: pick a feature (body, eyes, mouth, nose, hair, glasses, cheeks, ears, top, outfit), then an action (blink, look, wink, talk, whistle, bob, sway, shimmer, glow...). Mix as many as you like.
+- **Shuffle** for a random avatar. The same seed always gives the same avatar, textures included. **Copy** it as text.
+- **Animate**: in the panel's animate tab, pick a feature (body, eyes, mouth, nose, hair, glasses, cheeks, ears, top, outfit), then an action (blink, look, wink, talk, whistle, bob, sway, shimmer, glow...). Mix as many as you like.
 - **From a photo**: take or upload a picture; local computer vision (OpenCV) finds your face and picks the closest part for each slot: hair length and texture, glasses, smile, blush, neckline and shirt pattern. You get a *simple* avatar built from the same parts, not a detailed pixel-to-character render. No API keys, nothing is stored. On GitHub Pages it runs entirely in your browser.
 
 ## Run

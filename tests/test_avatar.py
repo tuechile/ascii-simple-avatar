@@ -56,7 +56,30 @@ def test_unknown_part_rejected():
 def test_options_endpoint():
     body = client.get("/options/top", params={"hair": "bob", "texture": "ribbon"}).json()
     assert [o["name"] for o in body] == list(PARTS["top"])
-    assert all("▰" in o["art"] for o in body)
+    assert not any("▰" in o["art"] for o in body)
+
+
+def test_options_show_only_that_part():
+    body = client.get("/options/nose", params={"seed": 1, "eyes": "round", "mouth": "cat"}).json()
+    assert {o["name"]: o["art"] for o in body}["hook"] == "?"
+    eyes = client.get("/options/glasses", params={"seed": 1, "eyes": "round"}).json()
+    assert {o["name"]: o["art"] for o in eyes}["round"] == "(o)-(o)"
+
+
+def test_option_tiles_share_a_size():
+    body = client.get("/options/hair", params={"seed": 1}).json()
+    sizes = {(len(o["art"].split("\n")), len(o["art"].split("\n")[0])) for o in body}
+    assert len(sizes) == 1
+
+
+def test_texture_preview_on_bald_uses_stand_in_hair():
+    body = client.get("/options/texture", params={"seed": 1, "hair": "bald"}).json()
+    assert all(o["art"].strip() for o in body)
+
+
+def test_face_only_has_no_body():
+    art = render(pick(1, outfit="none", hair="bald", top="none", line="soft"))
+    assert "( )" not in art and art.split("\n")[-1].strip() == ""
 
 
 def test_unknown_slot():
