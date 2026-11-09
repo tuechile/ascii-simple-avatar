@@ -129,7 +129,7 @@ const say = text => $("status").textContent = text;
 const script = src => new Promise((resolve, reject) => document.head.append(make("script", { src, onload: resolve, onerror: reject })));
 
 const copy = (py, files) => Promise.all(files.map(async file =>
-  py.FS.writeFile(`/home/pyodide/app/${file}`, new Uint8Array(await (await fetch(`app/${file}`)).arrayBuffer()))));
+  py.FS.writeFile(`/home/pyodide/app/${file}`, new Uint8Array(await (await fetch(`app/${file}`, { cache: "no-cache" })).arrayBuffer()))));
 
 const boot = () => python ??= (async () => {
   say("warming up python...");
